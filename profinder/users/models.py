@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
+    Yaatekk assbaaaaaaaaaaaaaaaaaaaaaaaaaaa
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
         ('CLIENT', 'Client'),
