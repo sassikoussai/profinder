@@ -1,5 +1,5 @@
 from rest_framework import viewsets, generics, permissions, filters, status
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -16,8 +16,8 @@ from .serializers import (
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    A viewset for user-related actions, such as registration, login, logout,
-    filtering by user type, and profile updates.
+    A viewset for user-related actions, including registration, login, logout,
+    filtering by user type, and profile management.
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -38,9 +38,25 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='login')
     def login(self, request):
         """
-        Log in a user and provide an auth token.
+        Log in a user and return an authentication token.
         """
-        return ObtainAuthToken().post(request)
+        class CustomObtainAuthToken(ObtainAuthToken):
+            def post(self, request, *args, **kwargs):
+                response = super().post(request, *args, **kwargs)
+                token = Token.objects.get(key=response.data['token'])
+                user = User.objects.get(id=token.user_id)
+                return Response({
+                    'token': token.key,
+                    'user': {
+                        'id': user.id,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                    }
+                })
+
+        custom_auth_view = CustomObtainAuthToken.as_view()
+        return custom_auth_view(request)
 
     @action(detail=False, methods=['post'], url_path='logout')
     def logout(self, request):
