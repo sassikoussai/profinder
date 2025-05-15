@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer
-from .models import User, ServiceProviderProfile, ServiceCategory, Service, Booking
+from users.models import (
+    User, ServiceProviderProfile, ServiceCategory, Service,
+    Booking, Message, Notification
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -9,57 +11,44 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'first_name', 'last_name', 'user_type', 'phone_number', 'address']
         read_only_fields = ['id']
 
-    def validate_email(self, value):
-        if not value.endswith('@example.com'):
-            raise serializers.ValidationError("Only example.com emails are allowed.")
-        return value
 
-
-class ServiceProviderProfileSerializer(ModelSerializer):
+class ServiceProviderProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = ServiceProviderProfile
         fields = ['user', 'profession', 'location', 'service_description', 'experience', 'rating']
-        read_only_fields = ['user', 'rating']
-
-    def validate_experience(self, value):
-        if value < 0:
-            raise serializers.ValidationError("Experience cannot be negative.")
-        return value
 
 
-class ServiceCategorySerializer(ModelSerializer):
+class ServiceCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceCategory
         fields = ['id', 'name', 'description']
-        read_only_fields = ['id']
 
 
-class ServiceSerializer(ModelSerializer):
+class ServiceSerializer(serializers.ModelSerializer):
     service_provider = ServiceProviderProfileSerializer(read_only=True)
 
     class Meta:
         model = Service
         fields = ['id', 'service_provider', 'category', 'title', 'description', 'price', 'location', 'is_active']
-        read_only_fields = ['id', 'service_provider']
-
-    def validate_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Price must be greater than zero.")
-        return value
 
 
-class BookingSerializer(ModelSerializer):
+class BookingSerializer(serializers.ModelSerializer):
     service = ServiceSerializer(read_only=True)
 
     class Meta:
         model = Booking
-        fields = ['id', 'service', 'client', 'booking_date', 'status']
-        read_only_fields = ['id', 'service']
+        fields = ['id', 'service', 'client', 'service_provider', 'booking_date', 'status']
 
-    def validate_booking_date(self, value):
-        from datetime import datetime
-        if value < datetime.now():
-            raise serializers.ValidationError("Booking date cannot be in the past.")
-        return value
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'receiver', 'content', 'created_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'user', 'message', 'read', 'created_at']
