@@ -8,9 +8,9 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 
-from .models import User, Message, Notification, Service
+from .models import Booking, Service_Category, ServiceProviderProfile, User, Service
 from .serializers import (
-    UserSerializer, MessageSerializer, NotificationSerializer, ServiceSerializer
+    BookingSerializer, ServiceProviderProfileSerializer, UserSerializer, ServiceSerializer,ServiceCategorySerializer
 )
 
 
@@ -120,51 +120,6 @@ class PasswordResetView(APIView):
         return Response({"detail": "Password reset link sent if email exists."}, status=status.HTTP_200_OK)
 
 
-class MessageViewSet(viewsets.ModelViewSet):
-    """
-    A viewset to handle messages between users.
-    """
-    queryset = Message.objects.all()
-    serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        """
-        Retrieve only messages related to the authenticated user.
-        """
-        return Message.objects.filter(receiver=self.request.user)
-
-    def perform_create(self, serializer):
-        """
-        Automatically set the sender to the authenticated user.
-        """
-        serializer.save(sender=self.request.user)
-
-
-class NotificationViewSet(viewsets.ModelViewSet):
-    """
-    A viewset to handle notifications for users.
-    """
-    queryset = Notification.objects.all()
-    serializer_class = NotificationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        """
-        Retrieve only notifications for the authenticated user.
-        """
-        return Notification.objects.filter(user=self.request.user)
-
-    @action(detail=True, methods=['post'], url_path='mark-as-read')
-    def mark_as_read(self, request, pk=None):
-        """
-        Mark a specific notification as read.
-        """
-        notification = self.get_object()
-        notification.read = True
-        notification.save()
-        return Response({"detail": "Notification marked as read."}, status=status.HTTP_200_OK)
-
 
 class ServiceSearchView(generics.ListAPIView):
     """
@@ -175,3 +130,61 @@ class ServiceSearchView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description', 'location', 'category__name']
     ordering_fields = ['price', 'rating']
+
+
+class BookingViewSet(viewsets.ModelViewSet):
+    queryset = Booking.objects.all().order_by('-booking_date')
+    serializer_class = BookingSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        client_id = self.request.query_params.get('client')
+        provider_id = self.request.query_params.get('service_provider')
+        
+        if client_id:
+            queryset = queryset.filter(client__id=client_id)
+        if provider_id:
+            queryset = queryset.filter(service_provider__id=provider_id)
+        return queryset
+
+class ServiceCategoryViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for managing service categories.
+    """
+    queryset = Service_Category.objects.all()
+    serializer_class = ServiceCategorySerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset
+    
+class ServiceViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for managing services.
+    """
+    queryset = Service.objects.all()
+    serializer_class = ServiceSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category_id = self.request.query_params.get('category')
+        if category_id:
+            queryset = queryset.filter(category__id=category_id)
+        return queryset
+
+class ServiceProviderProfileViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for managing service provider profiles.
+    """
+    queryset = ServiceProviderProfile.objects.all()
+    serializer_class = ServiceProviderProfileSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        profession = self.request.query_params.get('profession')
+        if profession:
+            queryset = queryset.filter(profession__icontains=profession)
+        return queryset

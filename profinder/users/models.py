@@ -40,11 +40,7 @@ class User(models.Model):
 
 
 class ServiceProviderProfile(models.Model):
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        limit_choices_to={'user_type': 'service_provider'}
-    )
+    user = models.OneToOneField(User,on_delete=models.CASCADE,limit_choices_to={'user_type': 'service_provider'})
     profession = models.CharField(max_length=100)
     location = models.CharField(max_length=100, blank=True)
     service_description = models.TextField(blank=True)
@@ -86,12 +82,31 @@ class Service_Category(models.Model):
     def __str__(self):
         return self.name
 
-class Booking (models.Model):
+class Booking(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
-    client = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'client'})
-    service_provider = models.ForeignKey(ServiceProviderProfile, on_delete=models.CASCADE, limit_choices_to={'user_type': 'service_provider'})
+    client = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'user_type': 'client'},
+        related_name='client_bookings'
+    )
+    service_provider = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'user_type': 'service_provider'},
+        related_name='provider_bookings'
+    )
     booking_date = models.DateTimeField()
-    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('confirmed', 'Confirmed'), ('completed', 'Completed')], default='pending')
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('confirmed', 'Confirmed'),
+            ('completed', 'Completed'),
+            ('canceled', 'Canceled')
+        ],
+        default='pending'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
